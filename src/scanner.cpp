@@ -90,7 +90,7 @@ void Scanner::next()
 
 void Scanner::string()
 {
-    // TODO.md: Support escape sequences in strings.
+    // TODO: Support escape sequences in strings.
 
     while (peek() != '"' && !isAtEnd()) advance();
 
@@ -208,7 +208,7 @@ void Scanner::error(std::string message)
     }
 
     // Find the number of the line containing the start of the bad token.
-    size_t line = static_cast<size_t>(std::count(code.begin(), code.begin() + start, '\n'));
+    auto line = static_cast<unsigned int>(std::count(code.begin(), code.begin() + start, '\n'));
     line++;
 
     // Find the column offset within the line for the start of the bad token.
@@ -220,7 +220,7 @@ void Scanner::error(std::string message)
     // For providing context to the error, only the line containing the start of the token is used.
     std::string context = code.substr(line_start_pos, line_end_pos - line_start_pos);
 
-    auto pos = ErrorPosition{static_cast<unsigned int>(line), static_cast<unsigned int>(column)};
+    auto pos = ErrorPosition{(line), static_cast<unsigned int>(column)};
 
     errors.add(pos, std::move(message), context);
 }
