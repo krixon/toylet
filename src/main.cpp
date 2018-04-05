@@ -8,12 +8,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    Toylet klox;
+    Toylet toylet;
 
     if (argc == 2) {
-        klox.file(argv[1]);
+        toylet.file(argv[1]);
     } else {
-        klox.prompt();
+        toylet.prompt();
     }
 
     return 0;
