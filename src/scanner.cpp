@@ -26,7 +26,9 @@ Scanner::Scanner(std::string code, ErrorReporter& errors) : code(std::move(code)
 
 TokenList const& Scanner::scan()
 {
-    while (!isAtEnd()) {
+    current = code.begin();
+
+    while (!at_end()) {
         start = current;
         next();
     }
@@ -68,7 +70,7 @@ void Scanner::next()
         case '/':
             if (match('/')) {
                 // Line comment. Consume everything until the next line break.
-                while (peek() != '\n' && !isAtEnd()) advance();
+                while (peek() != '\n' && !at_end()) advance();
             } else {
                 add(TokenType::SLASH);
             }
@@ -92,14 +94,14 @@ void Scanner::string()
 {
     // TODO: Support escape sequences in strings.
 
-    while (peek() != '"' && !isAtEnd()) advance();
+    while (peek() != '"' && !at_end()) advance();
 
-    if (isAtEnd()) {
+    if (at_end()) {
         error("Unterminated string.");
         return;
     }
 
-    std::string value = code.substr(start + 1, current - (start + 1));
+    std::string value = std::string(start + 1, current - (std::distance(current, start) - 1));
 
     // Move past the closing ".
     advance();
@@ -127,16 +129,21 @@ void Scanner::identifier()
     while (isalnum(peek())) advance();
 
     // Check if the identifier is a keyword.
-    std::string value = code.substr(start, current);
+    std::string value = std::string(start, current);
     auto iter         = keywords.find(value);
     TokenType type    = iter == keywords.end() ? TokenType::IDENTIFIER : iter->second;
 
     add(type);
 }
 
-bool Scanner::isAtEnd() const
+bool Scanner::at_end() const
 {
-    return current >= code.length();
+    return current >= code.end();
+}
+
+unsigned long Scanner::start_position() const
+{
+    return static_cast<unsigned long>(std::distance(code.begin(), start));
 }
 
 char Scanner::peek() const
@@ -146,18 +153,19 @@ char Scanner::peek() const
 
 char Scanner::peek(int offset) const
 {
-    if (current + offset >= code.length()) return '\0';
-    return code.at(current + offset);
+    if (current + offset >= code.end()) return '\0';
+
+    return *(current + offset);
 }
 
 char Scanner::advance()
 {
-    return code.at(current++);
+    return *current++;
 }
 
 bool Scanner::match(char c)
 {
-    if (isAtEnd()) return false;
+    if (at_end()) return false;
     if (peek() != c) return false;
 
     current++;
@@ -166,26 +174,26 @@ bool Scanner::match(char c)
 
 std::string Scanner::lexeme() const
 {
-    return code.substr(start, current - start);
+    return std::string(start, current);
 }
 
 void Scanner::add(TokenType type)
 {
-    auto token = std::make_unique<Token>(type, lexeme(), start);
+    auto token = std::make_unique<Token>(type, lexeme(), start_position());
 
     tokens.push_back(std::move(token));
 }
 
 void Scanner::add(TokenType type, std::string literal)
 {
-    auto token = std::make_unique<LiteralToken<std::string>>(type, lexeme(), start, literal);
+    auto token = std::make_unique<LiteralToken<std::string>>(type, lexeme(), start_position(), literal);
 
     tokens.push_back(std::move(token));
 }
 
 void Scanner::add(TokenType type, double literal)
 {
-    auto token = std::make_unique<LiteralToken<double>>(type, lexeme(), literal, start);
+    auto token = std::make_unique<LiteralToken<double>>(type, lexeme(), literal, start_position());
 
     tokens.push_back(std::move(token));
 }
@@ -195,24 +203,26 @@ void Scanner::error(std::string message)
     // Work out the line number and the column on that line for the start of the current token.
     // Also keep hold of the line of code on which the error occurred so we can display it as part of the error.
 
+    unsigned long start_pos = start_position();
+
     // Find the position of the start of the current line.
-    size_t line_start_pos = 1 + code.find_last_of('\n', start);
+    size_t line_start_pos = 1 + code.find_last_of('\n', start_pos);
     if (line_start_pos == std::string::npos) {
         line_start_pos = 0;
     }
 
     // Find the position of the end of the current line.
-    size_t line_end_pos = code.find_first_of('\n', start);
+    size_t line_end_pos = code.find_first_of('\n', start_pos);
     if (line_end_pos == std::string::npos) {
         line_end_pos = code.length();
     }
 
     // Find the number of the line containing the start of the bad token.
-    auto line = static_cast<unsigned int>(std::count(code.begin(), code.begin() + start, '\n'));
+    auto line = static_cast<unsigned int>(std::count(code.begin(), start, '\n'));
     line++;
 
     // Find the column offset within the line for the start of the bad token.
-    size_t column = start - line_start_pos;
+    size_t column = start_pos - line_start_pos;
     column++;
 
     // Grab the content of the line containing the start of the bad token.

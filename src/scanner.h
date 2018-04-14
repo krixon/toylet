@@ -17,10 +17,12 @@ public:
 
 private:
     std::string const code;
+    std::string::const_iterator start;
+    std::string::const_iterator current;
     ErrorReporter& errors;
     TokenList tokens{};
-    unsigned int start = 0;
-    unsigned int current = 0;
+//    unsigned int start = 0;
+//    unsigned int current = 0;
     static std::unordered_map<std::string, TokenType> const keywords;
 
     /**
@@ -46,7 +48,9 @@ private:
     /**
      * Determines if the end of the source code has been reached.
      */
-    bool isAtEnd() const;
+    bool at_end() const;
+
+    unsigned long start_position() const;
 
     /**
      * Returns the current character without advancing.
